@@ -186,10 +186,10 @@ async def join_couple(auth_id: str = Body(...), code: str = Body(...)):
     # Update the user with the couple ID
     await db.users.update_one(
         {"auth_id": auth_id},
-        {"$set": {"couple_id": str(couple["_id"])}}
+        {"$set": {"couple_id": couple["id"]}}
     )
     
-    return {"success": True, "couple_id": str(couple["_id"])}
+    return {"success": True, "couple_id": couple["id"]}
 
 @api_router.get("/couples/{couple_id}", response_model=Couple)
 async def get_couple(couple_id: str):
