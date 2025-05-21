@@ -1,61 +1,80 @@
 import { useState, useEffect } from 'react';
-import { 
-  getDoc, 
-  doc, 
-  setDoc, 
-  collection, 
-  query, 
-  where, 
-  onSnapshot 
-} from 'firebase/firestore';
-import { 
-  signInAnonymously, 
-  onAuthStateChanged 
-} from 'firebase/auth';
-import { httpsCallable } from 'firebase/functions';
-import { db, auth, functions } from '../firebase';
 import { encryptData, decryptData } from '../utils/crypto';
 
 /**
  * Custom hook for managing couple data and authentication
  */
 export const useCouple = () => {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [coupleData, setCoupleData] = useState(null);
   const [coupleId, setCoupleId] = useState(null);
   
-  // Initialize auth listener
+  // Backend API URL from environment variables
+  const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+  
+  // Generate a simple anonymous user ID if needed
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
-    
-    return () => unsubscribe();
+    if (!user) {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      } else {
+        // Generate a simple anonymous user
+        const newUser = {
+          id: 'user_' + Date.now(),
+          isAnonymous: true
+        };
+        setUser(newUser);
+        localStorage.setItem('user', JSON.stringify(newUser));
+      }
+    }
+  }, [user]);
+  
+  // Load saved couple data from localStorage
+  useEffect(() => {
+    const storedCoupleId = localStorage.getItem('coupleId');
+    if (storedCoupleId) {
+      setCoupleId(storedCoupleId);
+      
+      const storedCoupleData = localStorage.getItem('coupleData');
+      if (storedCoupleData) {
+        try {
+          setCoupleData(JSON.parse(storedCoupleData));
+        } catch (err) {
+          console.error("Error parsing stored couple data:", err);
+        }
+      }
+    }
   }, []);
   
-  // Listen for couple data changes
+  // Fetch couple data when coupleId changes
   useEffect(() => {
-    if (!coupleId || !user) return;
+    if (!coupleId) return;
     
-    const coupleRef = doc(db, 'couples', coupleId);
-    
-    const unsubscribe = onSnapshot(coupleRef, 
-      (snapshot) => {
-        if (snapshot.exists()) {
-          setCoupleData(snapshot.data());
+    const fetchCoupleData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_URL}/api/couples/${coupleId}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch couple data: ${response.status}`);
         }
-      },
-      (err) => {
-        console.error("Error listening to couple data:", err);
+        
+        const data = await response.json();
+        setCoupleData(data);
+        localStorage.setItem('coupleData', JSON.stringify(data));
+      } catch (err) {
+        console.error("Error fetching couple data:", err);
         setError("Could not load couple data.");
+      } finally {
+        setLoading(false);
       }
-    );
+    };
     
-    return () => unsubscribe();
-  }, [coupleId, user]);
+    fetchCoupleData();
+  }, [coupleId, API_URL]);
 
   /**
    * Sign in anonymously
