@@ -193,7 +193,7 @@ async def join_couple(auth_id: str = Body(...), code: str = Body(...)):
 
 @api_router.get("/couples/{couple_id}", response_model=Couple)
 async def get_couple(couple_id: str):
-    couple = await db.couples.find_one({"_id": couple_id})
+    couple = await db.couples.find_one({"id": couple_id})
     
     if not couple:
         raise HTTPException(status_code=404, detail="Couple not found")
