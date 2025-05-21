@@ -87,7 +87,7 @@ def test_frontend_backend_integration():
                 print("\n🔍 Testing Get Events API...")
                 response = requests.get(
                     f"{backend_url}/api/events",
-                    params={"coupleId": couple_id},
+                    params={"couple_id": couple_id},
                     headers={'Content-Type': 'application/json'}
                 )
                 
