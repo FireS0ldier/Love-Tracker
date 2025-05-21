@@ -223,7 +223,7 @@ async def get_events(couple_id: str):
 
 @api_router.get("/events/{event_id}", response_model=Event)
 async def get_event(event_id: str):
-    event = await db.events.find_one({"_id": event_id})
+    event = await db.events.find_one({"id": event_id})
     
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
