@@ -27,7 +27,7 @@ def test_frontend_backend_integration():
     try:
         response = requests.post(
             f"{backend_url}/api/couples",
-            json={"startDate": start_date},
+            json={"start_date": start_date, "created_by": "test_user"},
             headers={'Content-Type': 'application/json'}
         )
         
