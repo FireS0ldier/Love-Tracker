@@ -153,7 +153,7 @@ async def create_couple(couple: CoupleCreate):
     # Update the user with the couple ID
     await db.users.update_one(
         {"auth_id": couple.created_by},
-        {"$set": {"couple_id": str(created_couple["_id"])}}
+        {"$set": {"couple_id": created_couple["id"]}}
     )
     
     return Couple(**created_couple)
