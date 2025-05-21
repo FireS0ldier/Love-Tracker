@@ -1,38 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles */
+html, body {
+  @apply antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Light mode (default) */
+:root {
+  --primary-color: #0070F3;
+  --primary-color-light: #E1F0FF;
+  --accent-color: #FF4081;
+  --text-primary: #1F2937;
+  --text-secondary: #6B7280;
+  --bg-primary: #F9FAFB;
+  --bg-secondary: #FFFFFF;
+  --border-color: #E5E7EB;
+}
+
+/* Dark mode */
+.dark {
+  --primary-color: #3B82F6;
+  --primary-color-light: #1E3A8A;
+  --accent-color: #EC4899;
+  --text-primary: #F9FAFB;
+  --text-secondary: #9CA3AF;
+  --bg-primary: #111827;
+  --bg-secondary: #1F2937;
+  --border-color: #374151;
+}
+
+/* App container */
 .App {
-    text-align: center;
+  min-height: 100vh;
 }
 
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-semibold;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+/* Focus styles */
+button:focus, 
+input:focus, 
+select:focus, 
+textarea:focus {
+  @apply outline-none ring-2 ring-primary-500 ring-opacity-50;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+/* Animation for loading states */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
 }
 
-.App-link {
-    color: #61dafb;
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-500;
+}
+
+/* Form elements */
+input[type="text"],
+input[type="date"],
+input[type="datetime-local"],
+textarea {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
+         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+         dark:bg-gray-800 dark:border-gray-700 dark:text-white;
+}
+
+/* Button styles */
+.btn {
+  @apply inline-flex justify-center py-2 px-4 border border-transparent 
+         shadow-sm text-sm font-medium rounded-md 
+         focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+
+.btn-primary {
+  @apply text-white bg-blue-600 hover:bg-blue-700 
+         focus:ring-blue-500
+         dark:bg-blue-500 dark:hover:bg-blue-600;
+}
+
+.btn-secondary {
+  @apply text-gray-700 bg-white border-gray-300 
+         hover:bg-gray-50 focus:ring-blue-500
+         dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600
+         dark:hover:bg-gray-600;
+}
+
+/* Accessibility */
+.sr-only {
+  @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
 }
