@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "./hooks/useTheme";
 import Onboarding from "./screens/Onboarding";
@@ -7,22 +7,21 @@ import Calendar from "./screens/Calendar";
 import EventDetails from "./screens/EventDetails";
 import "./App.css";
 
-// Firebase initialization
-import { auth } from "./firebase";
-import { onAuthStateChanged } from "firebase/auth";
-
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Listen for auth state changes
+  // Check if user exists in localStorage
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
-    
-    return () => unsubscribe();
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (err) {
+        console.error("Error parsing stored user:", err);
+      }
+    }
+    setLoading(false);
   }, []);
 
   // Show loading screen while checking auth
@@ -62,5 +61,7 @@ function App() {
     </ThemeProvider>
   );
 }
+
+export default App;
 
 export default App;
