@@ -260,7 +260,7 @@ async def update_event(event_id: str, event_update: EventUpdate):
 
 @api_router.delete("/events/{event_id}")
 async def delete_event(event_id: str):
-    result = await db.events.delete_one({"_id": event_id})
+    result = await db.events.delete_one({"id": event_id})
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Event not found")
