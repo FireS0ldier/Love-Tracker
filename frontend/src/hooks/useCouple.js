@@ -82,10 +82,21 @@ export const useCouple = () => {
   const signIn = async () => {
     try {
       setLoading(true);
-      await signInAnonymously(auth);
+      
+      // Generate a simple anonymous user
+      const newUser = {
+        id: 'user_' + Date.now(),
+        isAnonymous: true
+      };
+      
+      setUser(newUser);
+      localStorage.setItem('user', JSON.stringify(newUser));
+      
+      return newUser;
     } catch (error) {
       console.error("Error signing in:", error);
       setError("Authentication failed.");
+      return null;
     } finally {
       setLoading(false);
     }
@@ -98,19 +109,36 @@ export const useCouple = () => {
    */
   const createCouple = async (startDate) => {
     try {
-      if (!user) await signIn();
+      if (!user) {
+        await signIn();
+      }
       
       setLoading(true);
       
-      // Call Firebase function to create a new couple
-      const createCoupleFn = httpsCallable(functions, 'createCouple');
-      const result = await createCoupleFn({ startDate });
+      const response = await fetch(`${API_URL}/api/couples`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          created_by: user.id,
+          start_date: new Date(startDate)
+        })
+      });
       
-      // Set the couple ID from the result
-      const { coupleId, coupleCode } = result.data;
-      setCoupleId(coupleId);
+      if (!response.ok) {
+        throw new Error(`Failed to create couple: ${response.status}`);
+      }
       
-      return coupleCode;
+      const data = await response.json();
+      
+      setCoupleId(data.id);
+      setCoupleData(data);
+      
+      localStorage.setItem('coupleId', data.id);
+      localStorage.setItem('coupleData', JSON.stringify(data));
+      
+      return data.pairing_code;
     } catch (error) {
       console.error("Error creating couple:", error);
       setError("Failed to create couple.");
@@ -127,19 +155,42 @@ export const useCouple = () => {
    */
   const joinCouple = async (code) => {
     try {
-      if (!user) await signIn();
+      if (!user) {
+        await signIn();
+      }
       
       setLoading(true);
       
-      // Call Firebase function to join a couple
-      const joinCoupleFn = httpsCallable(functions, 'joinCouple');
-      const result = await joinCoupleFn({ code });
+      const response = await fetch(`${API_URL}/api/couples/join`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          auth_id: user.id,
+          code
+        })
+      });
       
-      // Set the couple ID from the result
-      const { coupleId, success } = result.data;
+      if (!response.ok) {
+        throw new Error(`Failed to join couple: ${response.status}`);
+      }
       
-      if (success) {
-        setCoupleId(coupleId);
+      const data = await response.json();
+      
+      if (data.success) {
+        setCoupleId(data.couple_id);
+        
+        // Fetch the couple data
+        const coupleResponse = await fetch(`${API_URL}/api/couples/${data.couple_id}`);
+        
+        if (coupleResponse.ok) {
+          const coupleData = await coupleResponse.json();
+          setCoupleData(coupleData);
+          localStorage.setItem('coupleData', JSON.stringify(coupleData));
+        }
+        
+        localStorage.setItem('coupleId', data.couple_id);
         return true;
       }
       
@@ -173,9 +224,14 @@ export const useCouple = () => {
         encryptionKey
       );
       
-      // Update Firestore document
-      const coupleRef = doc(db, 'couples', coupleId);
-      await setDoc(coupleRef, { [field]: encryptedValue }, { merge: true });
+      // Update local storage
+      const updatedCoupleData = {
+        ...coupleData,
+        [field]: encryptedValue
+      };
+      
+      setCoupleData(updatedCoupleData);
+      localStorage.setItem('coupleData', JSON.stringify(updatedCoupleData));
       
       return true;
     } catch (error) {
