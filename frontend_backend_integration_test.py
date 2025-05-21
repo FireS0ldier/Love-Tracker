@@ -51,10 +51,10 @@ def test_frontend_backend_integration():
                 print(f"Couple details: {json.dumps(couple, indent=2)}")
                 
                 # Verify the start date
-                if couple.get('startDate') == start_date:
+                if couple.get('start_date') == start_date:
                     print("✅ Start date is correct")
                 else:
-                    print(f"❌ Start date mismatch: expected {start_date}, got {couple.get('startDate')}")
+                    print(f"❌ Start date mismatch: expected {start_date}, got {couple.get('start_date')}")
             else:
                 print(f"❌ Failed - Status: {response.status_code}")
                 print(f"Response: {response.text}")
