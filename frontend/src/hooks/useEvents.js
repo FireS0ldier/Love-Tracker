@@ -1,16 +1,4 @@
 import { useState, useEffect } from 'react';
-import { 
-  collection, 
-  query, 
-  where, 
-  orderBy, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  onSnapshot 
-} from 'firebase/firestore';
-import { db } from '../firebase';
 import { useCouple } from './useCouple';
 import { encryptData, decryptData } from '../utils/crypto';
 
@@ -21,71 +9,49 @@ export const useEvents = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { coupleId, coupleData } = useCouple();
+  const { coupleId } = useCouple();
   
-  // Listen for events changes
+  // Backend API URL from environment variables
+  const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+  
+  // Load events when coupleId changes
   useEffect(() => {
-    if (!coupleId) return;
+    if (!coupleId) {
+      setEvents([]);
+      setLoading(false);
+      return;
+    }
     
-    setLoading(true);
-    
-    const eventsRef = collection(db, 'events');
-    const eventsQuery = query(
-      eventsRef,
-      where('coupleId', '==', coupleId),
-      orderBy('date', 'asc')
-    );
-    
-    const unsubscribe = onSnapshot(
-      eventsQuery,
-      async (snapshot) => {
-        try {
-          const encryptionKey = coupleId; // Simplified for MVP
-          const eventsData = [];
-          
-          // Process each event document
-          for (const docSnapshot of snapshot.docs) {
-            const data = docSnapshot.data();
-            
-            // Decrypt sensitive fields
-            const description = data.encryptedDescription 
-              ? await decryptData(data.encryptedDescription, encryptionKey)
-              : '';
-              
-            const title = data.encryptedTitle
-              ? await decryptData(data.encryptedTitle, encryptionKey)
-              : 'Untitled Event';
-            
-            // Add the processed event to the array
-            eventsData.push({
-              id: docSnapshot.id,
-              title,
-              description,
-              date: data.date.toDate(),
-              reminderTime: data.reminderTime?.toDate() || null,
-              location: data.location || null,
-              // Keep any other non-sensitive fields
-              ...data
-            });
-          }
-          
-          setEvents(eventsData);
-        } catch (error) {
-          console.error("Error processing events:", error);
-          setError("Could not process events data.");
-        } finally {
-          setLoading(false);
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        
+        const response = await fetch(`${API_URL}/api/events?couple_id=${coupleId}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch events: ${response.status}`);
         }
-      },
-      (err) => {
-        console.error("Error fetching events:", err);
+        
+        const data = await response.json();
+        
+        // Convert dates from string to Date objects
+        const processedEvents = data.map(event => ({
+          ...event,
+          date: new Date(event.date),
+          reminderTime: event.reminder_time ? new Date(event.reminder_time) : null
+        }));
+        
+        setEvents(processedEvents);
+      } catch (error) {
+        console.error("Error fetching events:", error);
         setError("Could not load events.");
+      } finally {
         setLoading(false);
       }
-    );
+    };
     
-    return () => unsubscribe();
-  }, [coupleId]);
+    fetchEvents();
+  }, [coupleId, API_URL]);
   
   /**
    * Add a new event
@@ -96,29 +62,38 @@ export const useEvents = () => {
     try {
       if (!coupleId) throw new Error("No couple ID available.");
       
-      const encryptionKey = coupleId; // Simplified for MVP
+      const response = await fetch(`${API_URL}/api/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          couple_id: coupleId,
+          title: eventData.title,
+          description: eventData.description || null,
+          date: new Date(eventData.date),
+          location: eventData.location || null,
+          reminder_time: eventData.reminderTime ? new Date(eventData.reminderTime) : null
+        })
+      });
       
-      // Encrypt sensitive fields
-      const encryptedTitle = await encryptData(eventData.title, encryptionKey);
-      const encryptedDescription = eventData.description 
-        ? await encryptData(eventData.description, encryptionKey)
-        : null;
+      if (!response.ok) {
+        throw new Error(`Failed to add event: ${response.status}`);
+      }
       
-      // Prepare the event document data
-      const eventDoc = {
-        coupleId,
-        date: new Date(eventData.date),
-        reminderTime: eventData.reminderTime ? new Date(eventData.reminderTime) : null,
-        location: eventData.location || null,
-        encryptedTitle,
-        encryptedDescription,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+      const data = await response.json();
       
-      // Add the document to Firestore
-      const docRef = await addDoc(collection(db, 'events'), eventDoc);
-      return docRef.id;
+      // Add the new event to the local state
+      setEvents(prev => [
+        ...prev,
+        {
+          ...data,
+          date: new Date(data.date),
+          reminderTime: data.reminder_time ? new Date(data.reminder_time) : null
+        }
+      ]);
+      
+      return data.id;
     } catch (error) {
       console.error("Error adding event:", error);
       setError("Failed to add event.");
@@ -136,38 +111,54 @@ export const useEvents = () => {
     try {
       if (!coupleId) throw new Error("No couple ID available.");
       
-      const encryptionKey = coupleId; // Simplified for MVP
-      const eventRef = doc(db, 'events', eventId);
-      
-      // Only encrypt fields that are provided in the update
-      const updates = {
-        updatedAt: new Date()
-      };
-      
-      if (eventData.date) {
-        updates.date = new Date(eventData.date);
-      }
-      
-      if (eventData.reminderTime) {
-        updates.reminderTime = new Date(eventData.reminderTime);
-      }
-      
-      if (eventData.location !== undefined) {
-        updates.location = eventData.location;
-      }
+      // Prepare update data with snake_case keys
+      const updateData = {};
       
       if (eventData.title !== undefined) {
-        updates.encryptedTitle = await encryptData(eventData.title, encryptionKey);
+        updateData.title = eventData.title;
       }
       
       if (eventData.description !== undefined) {
-        updates.encryptedDescription = eventData.description 
-          ? await encryptData(eventData.description, encryptionKey)
-          : null;
+        updateData.description = eventData.description;
       }
       
-      // Update the Firestore document
-      await updateDoc(eventRef, updates);
+      if (eventData.date) {
+        updateData.date = new Date(eventData.date);
+      }
+      
+      if (eventData.location !== undefined) {
+        updateData.location = eventData.location;
+      }
+      
+      if (eventData.reminderTime !== undefined) {
+        updateData.reminder_time = eventData.reminderTime ? new Date(eventData.reminderTime) : null;
+      }
+      
+      const response = await fetch(`${API_URL}/api/events/${eventId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update event: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Update the event in the local state
+      setEvents(prev => prev.map(event => 
+        event.id === eventId
+          ? {
+              ...data,
+              date: new Date(data.date),
+              reminderTime: data.reminder_time ? new Date(data.reminder_time) : null
+            }
+          : event
+      ));
+      
       return true;
     } catch (error) {
       console.error("Error updating event:", error);
@@ -185,8 +176,17 @@ export const useEvents = () => {
     try {
       if (!coupleId) throw new Error("No couple ID available.");
       
-      // Delete the Firestore document
-      await deleteDoc(doc(db, 'events', eventId));
+      const response = await fetch(`${API_URL}/api/events/${eventId}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete event: ${response.status}`);
+      }
+      
+      // Remove the event from the local state
+      setEvents(prev => prev.filter(event => event.id !== eventId));
+      
       return true;
     } catch (error) {
       console.error("Error deleting event:", error);
