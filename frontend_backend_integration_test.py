@@ -63,11 +63,12 @@ def test_frontend_backend_integration():
             print("\n🔍 Testing Create Event API...")
             event_date = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%S')
             event_data = {
-                "coupleId": couple_id,
+                "couple_id": couple_id,
                 "title": "Test Event",
                 "description": "This is a test event",
                 "date": event_date,
-                "location": "Test Location"
+                "location": "Test Location",
+                "created_by": "test_user"
             }
             
             response = requests.post(
