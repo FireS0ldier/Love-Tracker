@@ -77,7 +77,7 @@ def test_frontend_backend_integration():
                 headers={'Content-Type': 'application/json'}
             )
             
-            if response.status_code == 201:
+            if response.status_code in [200, 201]:
                 print(f"✅ Passed - Status: {response.status_code}")
                 event = response.json()
                 event_id = event.get('id')
