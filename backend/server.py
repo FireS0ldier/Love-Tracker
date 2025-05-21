@@ -250,7 +250,7 @@ async def update_event(event_id: str, event_update: EventUpdate):
     
     # Update the event
     await db.events.update_one(
-        {"_id": event_id},
+        {"id": event_id},
         {"$set": update_data}
     )
     
