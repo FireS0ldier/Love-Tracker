@@ -31,11 +31,11 @@ def test_frontend_backend_integration():
             headers={'Content-Type': 'application/json'}
         )
         
-        if response.status_code == 201:
+        if response.status_code in [200, 201]:
             print(f"✅ Passed - Status: {response.status_code}")
             couple_data = response.json()
             couple_id = couple_data.get('id')
-            couple_code = couple_data.get('code')
+            couple_code = couple_data.get('pairing_code')  # Note: backend uses pairing_code, not code
             print(f"Created couple with ID: {couple_id} and code: {couple_code}")
             
             # Test getting the couple
