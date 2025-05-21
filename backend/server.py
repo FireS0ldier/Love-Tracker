@@ -255,7 +255,7 @@ async def update_event(event_id: str, event_update: EventUpdate):
     )
     
     # Get updated event
-    updated_event = await db.events.find_one({"_id": event_id})
+    updated_event = await db.events.find_one({"id": event_id})
     return Event(**updated_event)
 
 @api_router.delete("/events/{event_id}")
