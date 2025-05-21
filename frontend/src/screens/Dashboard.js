@@ -16,8 +16,8 @@ const Dashboard = () => {
   
   // Extract start date from couple data
   useEffect(() => {
-    if (coupleData && coupleData.startDate) {
-      setStartDate(coupleData.startDate.toDate());
+    if (coupleData && coupleData.start_date) {
+      setStartDate(new Date(coupleData.start_date));
     }
   }, [coupleData]);
   
